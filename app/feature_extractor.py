@@ -290,7 +290,7 @@ def get_empty_hand_data():
         }
     }
 
-def extract_phonology_json(results):
+def extract_feature_json(results):
 
     final_json = {}
     
