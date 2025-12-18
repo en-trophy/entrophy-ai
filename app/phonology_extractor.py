@@ -23,6 +23,57 @@ def is_folded(landmarks, indices):
     
     return dist_tip_wrist < dist_pip_wrist
 
+def analyze_inter_hand_relation(left_lm, right_lm):
+    if not left_lm or not right_lm:
+        return {
+            "both_present": False,
+            "forming_single_shape": False,
+            "mirrored_shape": False,
+            "hand_distance_close": False,
+            "finger_tips_facing": False
+        }
+
+    l_wrist = left_lm.landmark[0]
+    r_wrist = right_lm.landmark[0]
+
+    wrist_dist = calculate_distance(l_wrist, r_wrist)
+
+    # fingertip 평균 위치
+    l_tip = left_lm.landmark[8]   # index tip
+    r_tip = right_lm.landmark[8]
+
+    tip_dist = calculate_distance(l_tip, r_tip)
+
+    return {
+        "both_present": True,
+        "forming_single_shape": wrist_dist < 0.25,
+        "mirrored_shape": True,              # 좌우 hand label 기준 대칭은 MediaPipe가 이미 보장
+        "hand_distance_close": wrist_dist < 0.15,
+        "finger_tips_facing": tip_dist < 0.08
+    }
+
+def analyze_finger_relation(hand_lm):
+    if not hand_lm:
+        return {
+            "index_middle_crossed": False,
+            "index_over_middle": False,
+            "middle_over_index": False
+        }
+
+    lm = hand_lm.landmark
+
+    index_tip = lm[8]
+    middle_tip = lm[12]
+
+    crossed = abs(index_tip.x - middle_tip.x) < 0.02 and \
+              abs(index_tip.y - middle_tip.y) < 0.02
+
+    return {
+        "index_middle_crossed": crossed,
+        "index_over_middle": crossed and (index_tip.z < middle_tip.z),
+        "middle_over_index": crossed and (middle_tip.z < index_tip.z)
+    }
+
 def analyze_hand(hand_lm, face_lm, pose_lm, is_right_hand=False):
     """MediaPipe 랜드마크를 기반으로 hand.json 구조의 딕셔너리를 생성"""
     if not hand_lm:
@@ -259,5 +310,13 @@ def extract_phonogy_json(results):
 
     final_json['left']['present'] = bool(results.left_hand_landmarks)
     final_json['right']['present'] = bool(results.right_hand_landmarks)
+    final_json['inter_hand_relation'] = analyze_inter_hand_relation(
+        results.left_hand_landmarks,
+        results.right_hand_landmarks
+    )
+
+    final_json['finger_relation'] = analyze_finger_relation(
+        results.right_hand_landmarks or results.left_hand_landmarks
+    )
 
     return final_json
