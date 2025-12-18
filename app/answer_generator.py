@@ -4,7 +4,7 @@ import json
 import time
 import numpy as np
 import os
-from phonology_extractor import extract_phonogy_json
+from phonology_extractor import extract_phonology_json
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
@@ -66,7 +66,7 @@ def main():
                 image.flags.writeable = False
                 results = holistic.process(image)
 
-                captured_data = extract_phonogy_json(results)
+                captured_data = extract_phonology_json(results)
 
                 cv2.putText(display_frame, "Captured!", (50, 250),
                             cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
