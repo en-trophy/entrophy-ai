@@ -40,36 +40,40 @@ def main():
         
         while cap.isOpened():
             ret, frame = cap.read()
-            if not ret: break
-            
-            frame = cv2.flip(frame, 1)
-            
+            if not ret:
+                break
+
+            # 🔹 원본 프레임 (분석용)
+            analysis_frame = frame.copy()
+
+            # 🔹 셀카 미러링 프레임 (화면 출력용)
+            display_frame = cv2.flip(frame, 1)
+
             elapsed = time.time() - start_time
             remaining = 3 - elapsed
-            
+
             if remaining > 0:
                 text = str(int(remaining) + 1)
-                cv2.putText(frame, text, (300, 250), cv2.FONT_HERSHEY_SIMPLEX, 
-                            7, (0, 255, 255), 10)
-                cv2.imshow('Hand Capture', frame)
+                cv2.putText(display_frame, text, (300, 250),
+                            cv2.FONT_HERSHEY_SIMPLEX, 7, (0, 255, 255), 10)
+                cv2.imshow('Hand Capture', display_frame)
                 cv2.waitKey(1)
                 continue
-                
             else:
                 print(">>> 캡처 및 분석 중...")
-                
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                image = cv2.cvtColor(analysis_frame, cv2.COLOR_BGR2RGB)
                 image.flags.writeable = False
                 results = holistic.process(image)
 
-                # 정답 json 추출
                 captured_data = extract_phonogy_json(results)
-                
-                cv2.putText(frame, "Captured!", (50, 250), cv2.FONT_HERSHEY_SIMPLEX, 
-                            2, (0, 255, 0), 3)
-                cv2.imshow('Hand Capture', frame)
+
+                cv2.putText(display_frame, "Captured!", (50, 250),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+                cv2.imshow('Hand Capture', display_frame)
                 cv2.waitKey(1000)
                 break
+
         
     cap.release()
     cv2.destroyAllWindows()
