@@ -3,6 +3,7 @@ import mediapipe as mp
 import json
 import time
 import numpy as np
+import os
 from phonology_extractor import extract_phonogy_json
 
 # === 설정 및 초기화 ===
@@ -74,7 +75,12 @@ def main():
     cv2.destroyAllWindows()
 
     if captured_data:
-        filename = word + ".json"
+
+        save_dir = os.path.join(".", "answers")
+        os.makedirs(save_dir, exist_ok=True)
+
+        filename = os.path.join(save_dir, word + ".json")
+
         with open(filename, 'w', encoding='utf-8') as f:
             # [수정됨] cls=NumpyEncoder 추가하여 에러 해결
             json.dump(captured_data, f, indent=2, cls=NumpyEncoder)
