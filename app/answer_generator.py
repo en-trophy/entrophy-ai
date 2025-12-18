@@ -3,7 +3,7 @@ import mediapipe as mp
 import json
 import time
 import numpy as np
-from phonoqy_extractor import extract_phonogy_json
+from phonology_extractor import extract_phonogy_json
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
