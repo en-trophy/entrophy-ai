@@ -15,8 +15,8 @@ def generate_feedback(lesson_id, user_feature, answer_feature, evaluation):
             정답 여부: {evaluation['is_correct']}
             점수: {evaluation['score']}
 
-        정답이 아니면 [정답 수어 특징]과 [사용자 수어 특징]을 비교해서 어떤 부분을 고쳐야 할지
-            사용자에게 아주 짧게 1-2문장 이내로 피드백해 줘. 강조 기호는 사용하지마.
+        정답이면 짧게 축하만 해 주고, 틀렸으면 [정답 수어 특징]과 [사용자 수어 특징]을 비교해서 사용자가 왜 틀렸는지만
+            사용자에게 아주 짧고 핵심적으로 1 문장의 영어로 피드백해 줘. 강조 기호는 사용하지마. e.g.) Stretch your pinky finger, turn your wrist forward, etc..
             """
 
     return call_llm(prompt)
