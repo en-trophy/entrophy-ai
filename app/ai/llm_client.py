@@ -7,6 +7,11 @@ AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
 API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-05-01-preview")
 
 def call_llm(prompt: str) -> str:
+
+    print("ENDPOINT =", AZURE_OPENAI_ENDPOINT)
+    print("DEPLOYMENT =", AZURE_OPENAI_DEPLOYMENT)
+    print("API KEY EXISTS =", bool(AZURE_OPENAI_API_KEY))
+
     url = (
         f"{AZURE_OPENAI_ENDPOINT}"
         f"openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions"
