@@ -1,3 +1,9 @@
+import sys
+import os
+
+# 현재 파일(answer_generator.py)의 부모의 부모 디렉토리(프로젝트 루트)를 경로에 추가
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 import cv2
 import mediapipe as mp
 import json
