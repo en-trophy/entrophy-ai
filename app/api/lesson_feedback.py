@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.models.schemas import LessonFeedbackRequest, LessonFeedbackResponse
 from app.services.feature_extractor import extract_feature_json2
-from app.services.lesson_service import get_answer_frame, get_test_answer
+from app.services.lesson_service import get_answer_frame, get_test_answer_frame
 from app.services.evaluation_service import evaluate_static_sign
 from app.services.feedback_service import generate_feedback
 
@@ -14,8 +14,8 @@ async def lesson_feedback(lessonId: int, req: LessonFeedbackRequest):
     user_feature = extract_feature_json2(req.raw_landmarks)
 
     # 2. 정답 frame 조회
-    answer_feature = get_test_answer()
-    # answer_feature = get_answer_frame(lessonId)
+    # answer_feature = get_test_answer()
+    answer_feature = get_answer_frame(lessonId)
 
     # 3. 정답 여부 판단
     result = evaluate_static_sign(user_feature, answer_feature)
