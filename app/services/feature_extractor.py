@@ -320,3 +320,19 @@ def extract_feature_json(results):
     )
 
     return final_json
+    
+def extract_feature_json2(raw_landmarks) -> dict:
+    """
+    프런트에서 받은 MediaPipe holistic 결과를
+    extract_phonogy_json()에 넣을 수 있는 형태로 변환
+    """
+
+    class DummyResults:
+        # dict인지 객체인지 확인 후 안전하게 접근
+        left_hand_landmarks = getattr(raw_landmarks, "leftHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("leftHand")
+        right_hand_landmarks = getattr(raw_landmarks, "rightHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("rightHand")
+        face_landmarks = getattr(raw_landmarks, "face", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("face")
+        pose_landmarks = getattr(raw_landmarks, "pose", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("pose")
+
+    results = DummyResults()
+    return extract_feature_json(results)
