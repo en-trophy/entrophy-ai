@@ -1,12 +1,9 @@
 import json
 from pathlib import Path
-
+import os 
 import requests
-import json
 
-# 실제 백엔드 서버 주소로 변경해줘 (예: http://localhost:8080)
-API_BASE_URL = "https://equal-sign-backend-api-haejb5bdhnezc2c2.koreacentral-01.azurewebsites.net" 
-
+API_BASE_URL = os.getenv("BACKEND_ENDPOINT")
 def get_answer_frame(lessonId: int) -> dict:
     """
     GET /api/lessons/{lessonId}/answer-frames
