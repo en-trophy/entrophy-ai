@@ -4,7 +4,7 @@ import json
 import time
 import numpy as np
 import os
-from feature_extractor import extract_feature_json
+from app.services.feature_extractor import extract_feature_json
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
