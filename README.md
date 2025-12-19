@@ -1,1 +1,1 @@
-# entrophy-ai
+# Equal Sign AI

@@ -1,10 +1,19 @@
+import sys
+import os
+
+# 현재 파일(answer_generator.py)의 부모의 부모 디렉토리(프로젝트 루트)를 경로에 추가
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 import cv2
 import mediapipe as mp
 import json
 import time
 import numpy as np
 import os
-from feature_extractor import extract_feature_json
+from app.services.feature_extractor import extract_feature_json
+from app.services.lesson_service import get_answer_frame, get_test_answer_frame
+from app.services.evaluation_service import evaluate_static_sign
+from app.services.feedback_service import generate_feedback
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
@@ -25,7 +34,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 def main():
 
-    word = input("Word : ")
+    lesson_id = int(input("Lesson ID : "))
 
     cap = cv2.VideoCapture(0)
     
@@ -73,7 +82,6 @@ def main():
                 cv2.imshow('Hand Capture', display_frame)
                 cv2.waitKey(1000)
                 break
-
         
     cap.release()
     cv2.destroyAllWindows()
@@ -83,12 +91,28 @@ def main():
         save_dir = os.path.join(".", "answers")
         os.makedirs(save_dir, exist_ok=True)
 
-        filename = os.path.join(save_dir, word + ".json")
+        filename = os.path.join(save_dir, "myanswer" + ".json")
 
         with open(filename, 'w', encoding='utf-8') as f:
             # [수정됨] cls=NumpyEncoder 추가하여 에러 해결
             json.dump(captured_data, f, indent=2, cls=NumpyEncoder)
         print(f"\n✅ 성공적으로 저장되었습니다: {filename}")
+
+    answer_feature = get_answer_frame(lesson_id)
+
+    # 3. 정답 여부 판단
+    result = evaluate_static_sign(captured_data, answer_feature)
+
+    # 4. 자연어 피드백 생성
+    feedback = generate_feedback(
+        lesson_id=lesson_id,
+        user_feature=captured_data,
+        answer_feature=answer_feature,
+        evaluation=result
+    )
+
+    print(feedback)
+    print(result)
 
 if __name__ == "__main__":
     main()
