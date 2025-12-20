@@ -1,17 +1,20 @@
 from fastapi import APIRouter
 from app.models.schemas import LessonFeedbackRequest, LessonFeedbackResponse
-from app.services.feature_extractor import extract_feature_json2
+from app.services.feature_extractor import extract_feature_json
 from app.services.lesson_service import get_answer_frame, get_test_answer_frame
 from app.services.evaluation_service import evaluate_static_sign
 from app.services.feedback_service import generate_feedback
+from app.utils.mediapipe_adapter import build_mediapipe_results_from_request
 
 router = APIRouter()
 
 @router.post("/{lessonId}/feedback", response_model=LessonFeedbackResponse)
 async def lesson_feedback(lessonId: int, req: LessonFeedbackRequest):
 
+    results = build_mediapipe_results_from_request(req.raw_landmarks)
+
     # 1. raw landmarks → feature json
-    user_feature = extract_feature_json2(req.raw_landmarks)
+    user_feature = extract_feature_json(results)
 
     # 2. 정답 frame 조회
     # answer_feature = get_test_answer()
