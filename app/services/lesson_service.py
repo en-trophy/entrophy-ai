@@ -62,6 +62,43 @@ def get_answer_frame(lessonId: int) -> dict:
         print(f"❌ API 호출 중 오류 발생: {e}")
         return result_data
     
+def get_answer_frames(lessonId: int) -> list[dict]:
+    """
+    [NEW] DB에 저장된 정답 프레임 '전체 리스트'를 가져와서 반환
+    """
+    url = f"{API_BASE_URL}/api/lessons/{lessonId}/answer-frames"
+    
+    clean_frames = []
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        frames_list = response.json()
+        
+        if not frames_list:
+            print("⚠️ API 응답 리스트가 비어있습니다.")
+            return []
+
+        # 리스트를 순회하며 필요한 데이터만 정제
+        for item in frames_list:
+            hand_data = item.get('hand', {})
+            
+            # 데이터 구조 매핑 (null safe)
+            frame_data = {
+                "left": hand_data.get('left', {}),
+                "right": hand_data.get('right', {}),
+                "inter_hand_relation": hand_data.get('inter_hand_relation', {}),
+                "finger_relation": hand_data.get('finger_relation', {})
+            }
+            clean_frames.append(frame_data)
+
+        print(f"✅ 총 {len(clean_frames)}개의 정답 프레임 로딩 성공!")
+        return clean_frames
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ API 호출 중 오류 발생: {e}")
+        return []
 
 def get_test_answer_frame():
     """
