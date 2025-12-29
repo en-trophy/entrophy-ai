@@ -55,6 +55,9 @@ def get_answer_frame(lessonId: int) -> dict:
         if 'finger_relation' in hand_data:
             result_data['finger_relation'] = hand_data['finger_relation']
 
+        if 'non_manual_signal' in hand_data:
+            result_data['non_manual_signal'] = hand_data['non_manual_signal']
+
         print("✅ 정답 데이터 로딩 성공!")
         return result_data
 
