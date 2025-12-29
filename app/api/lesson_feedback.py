@@ -1,11 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.models.schemas import LessonFeedbackRequest, LessonFeedbackResponse
 from app.services.feature_extractor import extract_feature_json
-from app.services.lesson_service import get_answer_frame, get_test_answer_frame
-from app.services.evaluation_service import evaluate_static_sign
+from app.services.lesson_service import get_answer_frame, get_answer_frames,get_test_answer_frame
+from app.services.evaluation_service import evaluate_static_sign, evaluate_dynamic_sign
 from app.services.feedback_service import generate_feedback
 from app.utils.mediapipe_adapter import build_mediapipe_results_from_request
 from app.services.mediapipe_service import process_image_to_landmarks
+from typing import List
 
 router = APIRouter()
 
@@ -79,3 +80,58 @@ async def lesson_feedback_by_image(
     except Exception as e:
         print(f"Error processing image feedback: {e}")
         raise HTTPException(status_code=500, detail="이미지 처리 중 오류가 발생했습니다.")
+    
+@router.post("/{lessonId}/feedback/images", response_model=LessonFeedbackResponse)
+async def lesson_feedback_by_multiple_images(
+    lessonId: int, 
+    files: List[UploadFile] = File(...)
+):
+    try:
+        if not files:
+            raise HTTPException(status_code=400, detail="이미지가 없습니다.")
+
+        # 1. 사용자 이미지 처리 (Loop)
+        user_frames = []
+        for file in files:
+            image_bytes = await file.read()
+            # MediaPipe 처리
+            results = process_image_to_landmarks(image_bytes)
+            # Feature JSON 추출
+            feature = extract_feature_json(results)
+            user_frames.append(feature)
+
+        # 2. 정답 데이터 리스트 조회
+        answer_frames = get_answer_frames(lessonId)
+
+        if not answer_frames:
+             raise HTTPException(status_code=404, detail="정답 데이터를 찾을 수 없습니다.")
+
+        # 3. 채점 (Dynamic Evaluation)
+        eval_result = evaluate_dynamic_sign(user_frames, answer_frames)
+        
+        # 4. 피드백 생성 전략
+        # 모든 프레임을 다 LLM에 넣으면 너무 길어지므로,
+        # '가장 점수가 낮은(많이 틀린) 프레임'을 기준으로 피드백을 생성합니다.
+        target_idx = eval_result["worst_frame_idx"]
+        
+        # 인덱스 범위 안전 장치
+        if target_idx >= len(user_frames) or target_idx >= len(answer_frames):
+            target_idx = 0
+
+        feedback = generate_feedback(
+            lesson_id=lessonId,
+            user_feature=user_frames[target_idx],     # 가장 못 본 프레임의 내 동작
+            answer_feature=answer_frames[target_idx], # 그 순간의 정답 동작
+            evaluation={"score": eval_result["score"], "is_correct": eval_result["is_correct"]} 
+            # evaluation 정보는 전체 평균 점수를 넘깁니다.
+        )
+
+        return LessonFeedbackResponse(
+            isCorrect=eval_result["is_correct"],
+            score=eval_result["score"],
+            feedback=feedback
+        )
+
+    except Exception as e:
+        print(f"Error processing multiple images: {e}")
+        raise HTTPException(status_code=500, detail=f"처리 중 오류 발생: {str(e)}")
