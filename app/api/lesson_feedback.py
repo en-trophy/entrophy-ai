@@ -6,6 +6,7 @@ from app.services.evaluation_service import evaluate_static_sign, evaluate_dynam
 from app.services.feedback_service import generate_feedback
 from app.utils.mediapipe_adapter import build_mediapipe_results_from_request
 from app.services.mediapipe_service import process_image_to_landmarks
+from app.services.vision_service import analyze_expression
 from typing import List
 
 router = APIRouter()
@@ -53,7 +54,10 @@ async def lesson_feedback_by_image(
         results = process_image_to_landmarks(image_bytes)
 
         # 3. raw landmarks → feature json (기존 로직 재사용)
-        user_feature = extract_feature_json(results)
+        # user_feature = extract_feature_json(results)
+        
+        expression = analyze_expression(image_bytes)
+        user_feature = extract_feature_json(results, expression)
 
         # 4. 정답 frame 조회 (DB/API)
         answer_feature = get_answer_frame(lessonId)
@@ -97,8 +101,12 @@ async def lesson_feedback_by_multiple_images(
             # MediaPipe 처리
             results = process_image_to_landmarks(image_bytes)
             # Feature JSON 추출
-            feature = extract_feature_json(results)
-            user_frames.append(feature)
+            # feature = extract_feature_json(results)
+
+            expression = analyze_expression(image_bytes)
+            user_feature = extract_feature_json(results, expression)
+
+            user_frames.append(user_feature)
 
         # 2. 정답 데이터 리스트 조회
         answer_frames = get_answer_frames(lessonId)

@@ -320,19 +320,62 @@ def extract_feature_json(results):
     )
 
     return final_json
+
+def extract_feature_json(results, expression: str = "Neutral"):
+
+    final_json = {}
     
-def extract_feature_json2(raw_landmarks) -> dict:
-    """
-    프런트에서 받은 MediaPipe holistic 결과를
-    extract_phonogy_json()에 넣을 수 있는 형태로 변환
-    """
+    # 1. 왼손 분석
+    if results.left_hand_landmarks:
+        # print("Left Hand Detected")
+        data = analyze_hand(results.left_hand_landmarks, results.face_landmarks, results.pose_landmarks, is_right_hand=False)
+        final_json['left'] = data
+    else:
+        final_json['left'] = get_empty_hand_data()
 
-    class DummyResults:
-        # dict인지 객체인지 확인 후 안전하게 접근
-        left_hand_landmarks = getattr(raw_landmarks, "leftHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("leftHand")
-        right_hand_landmarks = getattr(raw_landmarks, "rightHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("rightHand")
-        face_landmarks = getattr(raw_landmarks, "face", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("face")
-        pose_landmarks = getattr(raw_landmarks, "pose", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("pose")
+    # 2. 오른손 분석
+    if results.right_hand_landmarks:
+        # print("Right Hand Detected")
+        data = analyze_hand(results.right_hand_landmarks, results.face_landmarks, results.pose_landmarks, is_right_hand=True)
+        final_json['right'] = data
+    else:
+        final_json['right'] = get_empty_hand_data()
 
-    results = DummyResults()
-    return extract_feature_json(results)
+    # 3. 손 존재 여부 플래그
+    final_json['left']['present'] = bool(results.left_hand_landmarks)
+    final_json['right']['present'] = bool(results.right_hand_landmarks)
+    
+    # 4. 양손 관계 분석
+    final_json['inter_hand_relation'] = analyze_inter_hand_relation(
+        results.left_hand_landmarks,
+        results.right_hand_landmarks
+    )
+
+    # 5. 손가락 관계 분석
+    final_json['finger_relation'] = analyze_finger_relation(
+        results.right_hand_landmarks or results.left_hand_landmarks
+    )
+
+    # 6. [NEW] 비수지기호(표정) 추가
+    # Custom Vision에서 분석한 결과(예: "Question", "Happy")가 여기에 들어갑니다.
+    final_json['non_manual_signal'] = {
+        "expression": expression
+    }
+
+    return final_json
+
+# def extract_feature_json2(raw_landmarks) -> dict:
+#     """
+#     프런트에서 받은 MediaPipe holistic 결과를
+#     extract_phonogy_json()에 넣을 수 있는 형태로 변환
+#     """
+
+#     class DummyResults:
+#         # dict인지 객체인지 확인 후 안전하게 접근
+#         left_hand_landmarks = getattr(raw_landmarks, "leftHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("leftHand")
+#         right_hand_landmarks = getattr(raw_landmarks, "rightHand", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("rightHand")
+#         face_landmarks = getattr(raw_landmarks, "face", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("face")
+#         pose_landmarks = getattr(raw_landmarks, "pose", None) if not isinstance(raw_landmarks, dict) else raw_landmarks.get("pose")
+
+#     results = DummyResults()
+#     return extract_feature_json(results)
