@@ -21,7 +21,7 @@ def compare_feature(user: dict, answer: dict) -> float:
                     matched += 1
 
     compare_dict(user, answer)
-    return matched / total if total else 0.0
+    return round(matched / total, 3) if total else 0.0
 
 # def compare_feature(user: dict, answer: dict) -> float:
 #     total = 0
