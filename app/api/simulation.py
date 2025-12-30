@@ -22,7 +22,7 @@ async def create_simulation(req: SimulationRequest):
         #     if word: lesson_words[lid] = word
         
         # 테스트용 목업 데이터 (DB 연결 전 테스트 시 사용)
-        mock_db = {1: "고구마", 2: "사랑해", 3: "감사합니다", 4: "안녕하세요"}
+        mock_db = {1: "SWEET POTATO", 2: "I LOVE YOU"}
         for lid in req.lesson_ids:
             if lid in mock_db:
                 lesson_words[lid] = mock_db[lid]
