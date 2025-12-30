@@ -120,3 +120,29 @@ def get_test_answer_frame():
         answer_data = json.load(f)
 
     return answer_data
+
+def get_lesson_word(lessonId: int) -> str:
+    """
+    [NEW] GET /api/lessons/{lessonId}
+    레슨 ID로 단어 이름(wordName)을 조회하여 반환
+    """
+    url = f"{API_BASE_URL}/api/lessons/{lessonId}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        word_name = data.get("title") 
+        
+        if not word_name:
+            print(f"⚠️ 레슨 {lessonId}의 단어 이름이 없습니다. 응답: {data}")
+            return None
+
+        print(f"✅ 단어 조회 성공: ID {lessonId} -> {word_name}")
+        return word_name
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ 단어 조회 API 실패 (ID: {lessonId}): {e}")
+        return None

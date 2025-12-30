@@ -67,3 +67,19 @@ class LessonFeedbackResponse(BaseModel):
     isCorrect: bool
     score: float
     feedback: str
+
+# [요청] 프론트가 보낼 데이터: 오늘 배운 레슨 ID 목록
+class SimulationRequest(BaseModel):
+    lesson_ids: List[int]
+
+# [응답] 대화 한 줄의 구조
+class DialogueLine(BaseModel):
+    speaker: str           # "AI" 또는 "User"
+    text: str              # 대사 내용 (User의 경우 가이드 문구)
+    target_lesson_id: Optional[int] = None # User 차례일 때 사용해야 할 레슨 ID (AI 차례면 null)
+
+# [응답] 최종 시뮬레이션 데이터 구조
+class SimulationResponse(BaseModel):
+    situation: str          # 상황 설명 (예: "따뜻한 겨울날...")
+    image_url: str          # DALL-E 생성 이미지 URL
+    dialogue: List[DialogueLine] # 대화 흐름 리스트
