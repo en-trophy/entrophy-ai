@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.lesson_feedback import router as lessons_router
+from app.api.simulation import router as simulation_router
 
 app = FastAPI()
 app.include_router(lessons_router, prefix="/api/lessons")
-
+app.include_router(simulation_router, prefix="/api", tags=["Simulation"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
