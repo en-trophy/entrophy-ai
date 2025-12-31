@@ -6,7 +6,7 @@ from app.services.evaluation_service import evaluate_static_sign, evaluate_dynam
 from app.services.feedback_service import generate_feedback
 from app.utils.mediapipe_adapter import build_mediapipe_results_from_request
 from app.services.mediapipe_service import process_image_to_landmarks
-from app.services.vision_service import analyze_expression
+from app.services.expression_analyzation_service import analyze_expression
 from typing import List
 from fastapi.concurrency import run_in_threadpool
 
