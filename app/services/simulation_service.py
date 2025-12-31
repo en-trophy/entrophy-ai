@@ -68,8 +68,7 @@ IMAGE GENERATION RULE
 LANGUAGE RULE
 ==================================================
 
-- "situation" MUST be written in Korean.
-- ALL other text MUST be written in English.
+- ALL text MUST be written in English.
 
 ==================================================
 OUTPUT FORMAT (JSON ONLY)
@@ -79,7 +78,7 @@ Return ONLY a valid JSON object.
 NO explanations. NO comments. NO extra text.
 
 {
-  "situation": "상황 설명 (Korean)",
+  "situation": "Situation (English)",
   "image_prompt": "First-person view ... (English)",
   "dialogue": [
     { "speaker": "AI", "text": "..." },
@@ -99,7 +98,6 @@ Before outputting:
 - If ANY check fails, REGENERATE internally before outputting
 """
 
-    
     user_prompt = f"사용할 단어 목록: {json.dumps(lesson_words, ensure_ascii=False)}"
 
     # 2. GPT 호출 (JSON 모드)
