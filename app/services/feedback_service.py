@@ -2,6 +2,10 @@ from app.ai.llm_client import call_llm
 
 def generate_feedback(lesson_id, user_feature, answer_feature, evaluation):
 
+    # 정답이면 LLM 호출 안 함
+    if evaluation["is_correct"]:
+        return "Congratulations!"
+
     prompt = f"""
             너는 미국 수어 학습 코치야.
 
