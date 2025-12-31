@@ -1,13 +1,22 @@
-def compare_feature(user: dict, answer: dict) -> float:
+from typing import Tuple, Dict, Any
+
+def compare_feature(user: dict, answer: dict) -> Tuple[float, Dict[str, Any]]:
     total = 0
     matched = 0
+    diff_log = {}  # 틀린 항목의 정답 데이터만 모을 딕셔너리
 
-    def compare_dict(u, a):
+    def compare_dict(u, a, diff_accum):
         nonlocal total, matched
         for k in a:
             if isinstance(a[k], dict):
-                compare_dict(u.get(k, {}), a[k])
-            # (위 코드의 else 부분 수정)
+                # 다음 계층을 위한 빈 딕셔너리 생성
+                sub_diff = {}
+                # 재귀 호출 시 sub_diff를 넘겨줌
+                compare_dict(u.get(k, {}), a[k], sub_diff)
+                
+                # 하위 항목에서 틀린 내용이 잡혔을 때만 현재 계층에 추가 (깔끔한 결과 보장)
+                if sub_diff:
+                    diff_accum[k] = sub_diff
             else:
                 total += 1
                 user_val = u.get(k)
@@ -19,9 +28,43 @@ def compare_feature(user: dict, answer: dict) -> float:
 
                 if str_user == str_ans:
                     matched += 1
+                else:
+                    # [변경] 틀렸을 경우: diff_accum에 '정답 값'을 기록
+                    # LLM이 "사용자는 A를 했지만 정답은 B입니다"라고 말하려면 B(정답)가 필요함
+                    diff_accum[k] = ans_val
 
-    compare_dict(user, answer)
-    return round(matched / total, 3) if total else 0.0
+    # 최상위 호출 시 diff_log를 넘겨줌
+    compare_dict(user, answer, diff_log)
+    
+    score = round(matched / total, 3) if total else 0.0
+    
+    # 점수와 틀린 부분(정답 기준) 딕셔너리를 함께 반환
+    return score, diff_log
+
+# def compare_feature(user: dict, answer: dict) -> float:
+#     total = 0
+#     matched = 0
+
+#     def compare_dict(u, a):
+#         nonlocal total, matched
+#         for k in a:
+#             if isinstance(a[k], dict):
+#                 compare_dict(u.get(k, {}), a[k])
+#             # (위 코드의 else 부분 수정)
+#             else:
+#                 total += 1
+#                 user_val = u.get(k)
+#                 ans_val = a[k]
+                
+#                 # 문자열 "true"/"false" 와 불리언 True/False를 유연하게 비교
+#                 str_user = str(user_val).lower() if user_val is not None else "none"
+#                 str_ans = str(ans_val).lower()
+
+#                 if str_user == str_ans:
+#                     matched += 1
+
+#     compare_dict(user, answer)
+#     return round(matched / total, 3) if total else 0.0
 
 # def compare_feature(user: dict, answer: dict) -> float:
 #     total = 0
