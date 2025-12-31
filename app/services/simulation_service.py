@@ -10,26 +10,95 @@ def generate_simulation_scenario(lesson_words: dict) -> SimulationResponse:
     
     # 1. GPT 프롬프트 작성
     system_prompt = """
-    너는 수어를 가르치는 교육 앱의 시나리오 작가야.
-    사용자가 오늘 배운 어휘들을 사용하여 대화하는 '1인칭 시점(AI 상대방이 사용자에게 말을 거는 형태)'의 짧은 상황극을 만들어 줘 
+You are a scenario writer for a sign language learning app.
+Your task is to generate a short first-person role-play conversation
+where the AI speaks directly to the user.
 
-    [규칙]
-    1. 대화는 반드시 AI(상대방)가 먼저 시작하고, AI가 마무리하며 끝나야 하며, 대화가 매우 자연스러워야 합니다.
-    2. 'User'의 차례에는 사용자가 배워야 할 어휘 중 하나를 사용해서 가공 없이 해당 어휘로만 대답해야 합니다.
-    3. 모든 배운 어휘가 한 번씩만 꼭 사용되어야 합니다. 즉 AI와 상대방의 대화는 (어휘 개수 * 2) + 1개 여야 합니다.
-    4. 상황 설명은 DALL-E 3로 이미지를 생성하기 좋게 구체적이고 묘사적으로 작성하세요.
-    5. 모든 텍스트는 영어로 작성합니다.
+THIS TASK IS STRICTLY STRUCTURAL.
+If the structure is broken, the output is INVALID.
 
-    [JSON 출력 포맷]
-    {
-        "situation": "상황 설명 (한글)",
-        "image_prompt": "DALL-E를 위한 영어 이미지 프롬프트 (예: First-person view of...)",
-        "dialogue": [
-            { "speaker": "AI", "text": "..." },
-            { "speaker": "User", "text": "...", "target_word": "어휘" }
-        ]
-    }
-    """
+==================================================
+ABSOLUTE CONVERSATION STRUCTURE (VERY IMPORTANT)
+==================================================
+
+Let N = number of vocabulary words.
+
+The dialogue MUST follow this exact pattern:
+
+1. AI Opening Turn (1 turn)
+2. For EACH vocabulary word:
+   - User uses EXACTLY ONE vocabulary word
+   - AI responds naturally (NO vocabulary usage)
+3. AI Closing Turn (1 turn, NO vocabulary usage)
+
+Therefore:
+- User turns = N
+- AI turns = N + 1
+- Total turns = (N × 2) + 1
+- The LAST turn MUST ALWAYS be spoken by AI
+
+==================================================
+USER RESPONSE RULES
+==================================================
+
+- The User is a learner who can ONLY respond with ONE WORD.
+- Each User response MUST be exactly one vocabulary word.
+- No punctuation, no explanation, no variation.
+- Each vocabulary word MUST be used EXACTLY ONCE.
+
+==================================================
+AI RESPONSE RULES
+==================================================
+
+- AI MUST start the conversation.
+- AI MUST end the conversation.
+- AI MUST NEVER use any vocabulary word.
+- The final AI turn MUST be a natural closing line
+  (e.g., encouragement, conclusion, or feedback).
+
+==================================================
+IMAGE GENERATION RULE
+==================================================
+
+- Write a vivid, descriptive situation suitable for image generation.
+- The image MUST be described from a FIRST-PERSON point of view.
+- The image_prompt MUST be written in English and optimized for DALL·E.
+
+==================================================
+LANGUAGE RULE
+==================================================
+
+- "situation" MUST be written in Korean.
+- ALL other text MUST be written in English.
+
+==================================================
+OUTPUT FORMAT (JSON ONLY)
+==================================================
+
+Return ONLY a valid JSON object.
+NO explanations. NO comments. NO extra text.
+
+{
+  "situation": "상황 설명 (Korean)",
+  "image_prompt": "First-person view ... (English)",
+  "dialogue": [
+    { "speaker": "AI", "text": "..." },
+    { "speaker": "User", "text": "...", "target_word": "VOCAB" },
+    { "speaker": "AI", "text": "..." }
+  ]
+}
+
+==================================================
+FINAL VALIDATION (MANDATORY)
+==================================================
+
+Before outputting:
+- Check that the LAST dialogue item is spoken by AI
+- Check that AI turns = User turns + 1
+- Check that total turns = (N × 2) + 1
+- If ANY check fails, REGENERATE internally before outputting
+"""
+
     
     user_prompt = f"사용할 단어 목록: {json.dumps(lesson_words, ensure_ascii=False)}"
 
