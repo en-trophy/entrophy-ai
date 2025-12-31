@@ -1,6 +1,8 @@
 from azure.cognitiveservices.vision.customvision.prediction import CustomVisionPredictionClient
 from msrest.authentication import ApiKeyCredentials
 import os
+import base64
+import requests
 
 # 환경 변수에서 가져오기 (Azure Portal -> Configuration에 꼭 등록해야 함!)
 ENDPOINT = os.environ.get("CUSTOM_VISION_ENDPOINT")
@@ -37,4 +39,75 @@ def analyze_expression(image_bytes: bytes) -> str:
 
     except Exception as e:
         print(f"❌ Custom Vision Error: {e}")
+        return "Error"
+
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-05-01-preview")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+
+
+def analyze_expression_with_llm(image_bytes: bytes) -> str:
+    """
+    Azure OpenAI (gpt-4o-mini, Vision)으로
+    표정을 Curious / Positive / Negative / Neutral 중 하나로 분류
+    """
+
+    try:
+        # 이미지 → base64
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+
+        url = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version={API_VERSION}"
+
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": AZURE_OPENAI_API_KEY
+        }
+
+        payload = {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an AI assistant that analyzes a user's facial expression "
+                        "from an image.\n"
+                        "You MUST choose exactly one of the following labels:\n"
+                        "- Curious (questioning, interested, wondering)\n"
+                        "- Positive (happy, pleased, friendly)\n"
+                        "- Negative (angry, sad, frustrated)\n"
+                        "- Neutral (no clear emotion)\n\n"
+                        "Respond with ONLY the label name."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Classify the facial expression in this image."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 10,
+            "temperature": 0
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        result = response.json()
+        label = result["choices"][0]["message"]["content"].strip()
+
+        allowed = {"Curious", "Positive", "Negative", "Neutral"}
+        return label if label in allowed else "Uncertain"
+
+    except Exception as e:
+        print(f"❌ LLM Expression Error: {e}")
         return "Error"
