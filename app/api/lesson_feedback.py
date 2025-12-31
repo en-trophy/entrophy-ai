@@ -6,7 +6,7 @@ from app.services.evaluation_service import evaluate_static_sign, evaluate_dynam
 from app.services.feedback_service import generate_feedback
 from app.utils.mediapipe_adapter import build_mediapipe_results_from_request
 from app.services.mediapipe_service import process_image_to_landmarks
-from app.services.vision_service import analyze_expression
+from app.services.expression_analyzation_service import analyze_expression, analyze_expression_with_llm
 from typing import List
 from fastapi.concurrency import run_in_threadpool
 
@@ -58,7 +58,7 @@ async def lesson_feedback_by_image(
         # 3. raw landmarks → feature json (기존 로직 재사용)
         # user_feature = extract_feature_json(results)
         
-        expression = await run_in_threadpool(analyze_expression, image_bytes)
+        expression = await run_in_threadpool(analyze_expression_with_llm, image_bytes)
         user_feature = extract_feature_json(results, expression)
 
         # 4. 정답 frame 조회 (DB/API)
@@ -104,7 +104,7 @@ async def lesson_feedback_by_multiple_images(
             # Feature JSON 추출
             # feature = extract_feature_json(results)
 
-            expression = await run_in_threadpool(analyze_expression, image_bytes)
+            expression = await run_in_threadpool(analyze_expression_with_llm, image_bytes)
             user_feature = extract_feature_json(results, expression)
 
             user_frames.append(user_feature)

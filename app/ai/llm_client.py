@@ -77,19 +77,17 @@ def call_gpt_json(system_prompt: str, user_prompt: str) -> dict:
 
 # [NEW] 이미지 생성용 (DALL-E 3)
 def call_dalle_image(prompt: str) -> str:
-    # DALL-E 3 URL 구조는 chat과 다름 (images/generations)
     url = f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{AZURE_DALLE_DEPLOYMENT}/images/generations?api-version={API_VERSION}"
     
     payload = {
         "prompt": prompt,
         "n": 1,
-        "size": "1024x1024",
-        "style": "vivid", # 선명한 스타일
+        "size": "1024x1024",  
+        "style": "vivid",
         "quality": "standard"
     }
 
     response = requests.post(url, headers=get_headers(), json=payload)
     response.raise_for_status()
     
-    # 이미지 URL 반환
     return response.json()["data"][0]["url"]
