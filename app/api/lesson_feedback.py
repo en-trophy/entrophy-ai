@@ -71,8 +71,6 @@ async def lesson_feedback_by_image(
         feedback = await run_in_threadpool(
             generate_feedback,
             lesson_id=lessonId,
-            user_feature=user_feature,
-            answer_feature=answer_feature,
             evaluation=result
         )
 
