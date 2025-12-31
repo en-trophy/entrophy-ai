@@ -18,10 +18,7 @@ def get_headers():
     }
 
 # [기존 함수 유지] 피드백 생성용
-def call_llm(prompt: str) -> str:
-    print("ENDPOINT =", AZURE_OPENAI_ENDPOINT)
-    print("DEPLOYMENT =", AZURE_OPENAI_DEPLOYMENT)
-    print("API KEY EXISTS =", bool(AZURE_OPENAI_API_KEY))
+def call_llm(prompt: str) -> str:\
 
     url = (
         f"{AZURE_OPENAI_ENDPOINT}"
@@ -40,7 +37,7 @@ def call_llm(prompt: str) -> str:
                 "role": "system",
                 "content": (
                     "너는 미국 수어(KSL) 학습자를 돕는 친절한 수어 코치야. "
-                    "정답이면 짧게 축하만 해 주고, 틀렸으면 [정답 수어 특징]과 [사용자 수어 특징]을 비교해서 사용자가 왜 틀렸는지 핵심만 사용자에게 아주 짧게 영어 1 문장으로 피드백해 줘. 표정이 틀렸으면 그것도 포함해서 알려줘. 강조 기호는 사용하지마."
+                    "틀렸으면 [정답 수어 특징]대로 사용자가 동작할 수 있도록 사용자에게 아주 짧지만 명확히 영어 1 문장으로 피드백해 줘. 표정이 명시되어 있으면 그것도 포함해서 알려줘. 강조 기호는 사용하지마."
                 )
             },
             {
