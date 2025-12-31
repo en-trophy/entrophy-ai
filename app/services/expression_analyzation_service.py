@@ -72,7 +72,7 @@ def analyze_expression_with_llm(image_bytes: bytes) -> str:
                         "You are an AI assistant that analyzes a user's facial expression "
                         "from an image.\n"
                         "You MUST choose exactly one of the following labels:\n"
-                        "- Curious (questioning, interested, wondering)\n"
+                        "- Question (questioning, interested, wondering)\n"
                         "- Positive (happy, pleased, friendly)\n"
                         "- Negative (angry, sad, frustrated)\n"
                         "- Neutral (no clear emotion)\n\n"
@@ -105,7 +105,8 @@ def analyze_expression_with_llm(image_bytes: bytes) -> str:
         result = response.json()
         label = result["choices"][0]["message"]["content"].strip()
 
-        allowed = {"Curious", "Positive", "Negative", "Neutral"}
+        allowed = {"Question", "Positive", "Negative", "Neutral"}
+        
         return label if label in allowed else "Uncertain"
 
     except Exception as e:
