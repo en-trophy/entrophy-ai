@@ -17,7 +17,7 @@ def evaluate_dynamic_sign(user_frames: list[dict], answer_frames: list[dict]) ->
     min_len = min(len(user_frames), len(answer_frames))
     
     if min_len == 0:
-        return {"score": 0.0, "is_correct": False, "worst_frame_idx": 0}
+        return {"score": 0.0, "is_correct": False, "wrong_parts": None, "worst_frame_idx": 0}
 
     lowest_score = 1.1 # 1.0보다 큰 값으로 초기화
     worst_frame_idx = 0
@@ -40,6 +40,6 @@ def evaluate_dynamic_sign(user_frames: list[dict], answer_frames: list[dict]) ->
     return {
         "score": avg_score,
         "is_correct": avg_score == 1.0, # 평균 점수가 1.0이어야 정답 (필요시 0.9 등으로 완화 가능)
+        "wrong_parts": worst_frame_wrong_parts,
         "worst_frame_idx": worst_frame_idx, # LLM에게 "이 부분을 틀렸어"라고 말해주기 위함
-        "worst_frame_wrong_parts": worst_frame_wrong_parts
     }
