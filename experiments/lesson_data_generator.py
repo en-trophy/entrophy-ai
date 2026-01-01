@@ -225,7 +225,7 @@ def post_video(video_path):
         print(f"❌ Video Upload Failed: {e}")
         return None
 
-def post_lessons(category_id, title, sign_language, difficulty, type, frame_number, image_url, video_url):
+def post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url):
     url = f"{API_BASE_URL}/api/lessons"
     
     payload = {
@@ -234,6 +234,7 @@ def post_lessons(category_id, title, sign_language, difficulty, type, frame_numb
         "signLanguage": sign_language,
         "difficulty": difficulty,
         "type": type,
+        "mode": mode,
         "imageUrl": image_url,
         "videoUrl": video_url,
         "frameNumber": frame_number # 스키마에 있다면 추가
@@ -292,23 +293,26 @@ def main():
         print("Invalid Input.")
         return
 
+    mode = None
     image_url = None
     video_url = None
     lesson_id = None
 
     if frame_number == 1:
         # 정적 이미지 (단어)
+        mode = "STATIC"
         hand_json, image = generate_static_lesson()
         if image is not None:
             image_url = post_images(image)
             if image_url:
-                lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, frame_number, image_url, video_url)
+                lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url)
                 if lesson_id:
                     post_answer_frames(lesson_id, 1, hand_json)
     
     else:
         # 동적 비디오 (문장 또는 긴 단어)
         # generate_dynamic_lesson은 (json 리스트, 비디오 경로)를 반환해야 함
+        mode = "DYNAMIC"
         hand_jsons, video_path = generate_dynamic_lesson(frame_number)
         
         if video_path and os.path.exists(video_path):
@@ -318,7 +322,7 @@ def main():
             
             if video_url:
                 # 썸네일용으로 첫 번째 프레임을 이미지로 올릴 수도 있음 (여기선 생략)
-                lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, frame_number, image_url, video_url)
+                lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url)
                 
                 if lesson_id:
                     for i, hand_json in enumerate(hand_jsons):
