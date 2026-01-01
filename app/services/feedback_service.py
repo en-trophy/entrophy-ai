@@ -1,6 +1,6 @@
 from app.ai.llm_client import call_llm
 
-def generate_feedback(lesson_id, evaluation):
+def generate_feedback(evaluation):
 
     # 정답이면 LLM 호출 안 함
     if evaluation["is_correct"]:

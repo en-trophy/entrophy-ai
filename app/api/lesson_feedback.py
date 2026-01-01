@@ -70,7 +70,6 @@ async def lesson_feedback_by_image(
         # 6. 자연어 피드백 생성
         feedback = await run_in_threadpool(
             generate_feedback,
-            lesson_id=lessonId,
             evaluation=result
         )
 
@@ -116,12 +115,12 @@ async def lesson_feedback_by_multiple_images(
              raise HTTPException(status_code=404, detail="정답 데이터를 찾을 수 없습니다.")
 
         # 3. 채점 (Dynamic Evaluation)
-        eval_result = evaluate_dynamic_sign(user_frames, answer_frames)
+        result = evaluate_dynamic_sign(user_frames, answer_frames)
         
         # 4. 피드백 생성 전략
         # 모든 프레임을 다 LLM에 넣으면 너무 길어지므로,
         # '가장 점수가 낮은(많이 틀린) 프레임'을 기준으로 피드백을 생성합니다.
-        target_idx = eval_result["worst_frame_idx"]
+        target_idx = result["worst_frame_idx"]
         
         # 인덱스 범위 안전 장치
         if target_idx >= len(user_frames) or target_idx >= len(answer_frames):
@@ -129,16 +128,12 @@ async def lesson_feedback_by_multiple_images(
 
         feedback = await run_in_threadpool( 
             generate_feedback,
-            lesson_id=lessonId,
-            user_feature=user_frames[target_idx],     # 가장 못 본 프레임의 내 동작
-            answer_feature=answer_frames[target_idx], # 그 순간의 정답 동작
-            evaluation={"score": eval_result["score"], "is_correct": eval_result["is_correct"]} 
-            # evaluation 정보는 전체 평균 점수를 넘깁니다.
+            evaluation=result
         )
 
         return LessonFeedbackResponse(
-            isCorrect=eval_result["is_correct"],
-            score=eval_result["score"],
+            isCorrect=result["is_correct"],
+            score=result["score"],
             feedback=feedback
         )
 
