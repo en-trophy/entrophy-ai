@@ -9,7 +9,7 @@ from app.services.feedback_service import generate_feedback
 from app.services.evaluation_service import evaluate_static_sign
 
 # 1. MCP 서버 초기화 (이름: SignLanguageTutor)
-mcp = FastMCP("SignLanguageTutor")
+mcp = FastMCP("Equal Sign - Sign Language Tutor")
 
 # ==========================================
 # 🛠️ 도구 1: 레슨 조회 (Resource/Tool)
