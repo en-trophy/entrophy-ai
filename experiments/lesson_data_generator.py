@@ -15,8 +15,8 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from app.services.feature_extractor import extract_feature_json
 from app.services.expression_analyzation_service import analyze_expression_with_llm
 
-API_BASE_URL = os.getenv("BACKEND_ENDPOINT", "https://equal-sign-backend-api-haejb5bdhnezc2c2.koreacentral-01.azurewebsites.net")
-X_ADMIN_KEY = os.getenv("X_ADMIN_KEY", "equal_sign_media_upload")
+API_BASE_URL = os.getenv("BACKEND_ENDPOINT")
+X_ADMIN_KEY = os.getenv("X_ADMIN_KEY")
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
