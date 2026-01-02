@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from app.services.feature_extractor import extract_feature_json
 from app.services.expression_analyzation_service import analyze_expression_with_llm
-from lesson_data_generator import NumpyEncoder, generate_static_lesson, generate_dynamic_lesson, post_images, post_video
+from lesson_data_generator import NumpyEncoder, generate_static_lesson, generate_dynamic_lesson, post_images, post_videos
 
 API_BASE_URL = os.getenv("BACKEND_ENDPOINT")
 X_ADMIN_KEY = os.getenv("X_ADMIN_KEY")
@@ -138,7 +138,7 @@ def main():
         
         if video_path:
             print("Uploading Video...")
-            new_video_url = post_video(video_path)
+            new_video_url = post_videos(video_path)
             
             # (옵션) 썸네일용으로 첫 프레임을 이미지로 올릴 수도 있음
             # new_image_url = ... 

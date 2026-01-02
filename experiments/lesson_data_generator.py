@@ -206,7 +206,7 @@ def post_images(image):
         print(f"❌ Image Upload Failed: {e}")
         return None
 
-def post_video(video_path):
+def post_videos(video_path):
     url = f"{API_BASE_URL}/api/storage/videos"
     
     params = {'adminKey': X_ADMIN_KEY}
@@ -316,7 +316,7 @@ def main():
         hand_jsons, video_path = generate_dynamic_lesson(frame_number)
         
         if video_path and os.path.exists(video_path):
-            video_url = post_video(video_path)
+            video_url = post_videos(video_path)
             # 임시 파일 삭제
             # os.remove(video_path) 
             
