@@ -15,3 +15,7 @@ data/
 *.npy
 *.h5
 *.tflite
+
+# Large Files
+*.mov
+*.mp4
