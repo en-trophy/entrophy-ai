@@ -131,7 +131,7 @@ def main():
     elif mode == 'DYNAMIC':
         # 동적 비디오 재촬영
         # 기존 frameNumber(길이)를 가져오거나 기본값 사용
-        duration = current_data.get('frameNumber', 5)
+        duration = int(input("Frame Number : "))
         print(f"Recording for {duration} seconds...")
         
         hand_jsons, video_path = generate_dynamic_lesson(duration)
