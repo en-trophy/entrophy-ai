@@ -194,10 +194,10 @@ def post_images(image):
     files = {
         'file': ('image.jpg', img_bytes, 'image/jpeg')
     }
-    params = {'adminKey': X_ADMIN_KEY} # Query Param 가정
+    headers = {'X-ADMIN-KEY': X_ADMIN_KEY} # Query Param 가정
 
     try:
-        response = requests.post(url, params=params, files=files)
+        response = requests.post(url, headers=headers, files=files)
         response.raise_for_status()
         result = response.json()
         print(f"✅ Image Upload Success: {result['uploadUrl']}")
@@ -209,14 +209,14 @@ def post_images(image):
 def post_videos(video_path):
     url = f"{API_BASE_URL}/api/storage/videos"
     
-    params = {'adminKey': X_ADMIN_KEY}
+    headers = {'X-ADMIN-KEY': X_ADMIN_KEY}
     
     try:
         with open(video_path, 'rb') as f:
             files = {
                 'file': ('video.mp4', f, 'video/mp4')
             }
-            response = requests.post(url, params=params, files=files)
+            response = requests.post(url, headers=headers, files=files)
             response.raise_for_status()
             result = response.json()
             print(f"✅ Video Upload Success: {result['uploadUrl']}")
