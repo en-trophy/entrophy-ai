@@ -52,7 +52,9 @@ def generate_static_lesson():
             if not ret:
                 break
 
+            # 분석용 원본 프레임 (정방향)
             analysis_frame = frame.copy()
+            # 화면 출력용 프레임 (거울모드)
             display_frame = cv2.flip(frame, 1)
 
             elapsed = time.time() - start_time
@@ -68,19 +70,20 @@ def generate_static_lesson():
             else:
                 print(">>> 캡처 및 분석 중...")
 
+                # 1. MediaPipe 분석은 '정방향(analysis_frame)'으로 수행
                 image = cv2.cvtColor(analysis_frame, cv2.COLOR_BGR2RGB)
                 image.flags.writeable = False
                 results = holistic.process(image)
 
-                # [수정됨] numpy array -> JPEG Bytes 변환
-                # LLM이나 API로 보낼 때는 바이트 스트림이어야 함
+                # LLM 분석용 바이트 변환 (정방향 사용)
                 _, buffer = cv2.imencode('.jpg', analysis_frame)
                 image_bytes = buffer.tobytes()
 
                 expression = analyze_expression_with_llm(image_bytes)
                 captured_data = extract_feature_json(results, expression)
                 
-                final_image = analysis_frame # 저장용 원본 프레임
+                # 2. [수정됨] 업로드용 이미지는 '거울모드'로 저장
+                final_image = cv2.flip(analysis_frame, 1) 
 
                 cv2.putText(display_frame, "Captured!", (50, 250),
                             cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
@@ -96,10 +99,9 @@ def generate_dynamic_lesson(duration_sec):
     cap = cv2.VideoCapture(0)
     
     # 비디오 저장을 위한 설정
-    # 임시 파일 경로 생성
     temp_video_path = os.path.join(tempfile.gettempdir(), f"sign_video_{int(time.time())}.mp4")
     
-    # 코덱 및 VideoWriter 설정 (Mac/Linux: mp4v, Windows: DIVX 등 환경에 맞게 조정 필요)
+    # 코덱 및 VideoWriter 설정
     fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
     fps = 30.0
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -137,29 +139,28 @@ def generate_dynamic_lesson(duration_sec):
             current_time = time.time()
             elapsed = current_time - record_start_time
 
-            # 지정된 시간(duration_sec)이 지나면 종료
             if elapsed > duration_sec:
                 break
 
-            # 비디오 프레임 저장
-            out.write(frame)
+            # [수정됨] 비디오 파일에는 '거울모드(반전된 프레임)'를 기록
+            out.write(cv2.flip(frame, 1))
 
-            # 화면 표시
+            # 화면 표시 (거울모드)
             display_frame = cv2.flip(frame, 1)
             cv2.putText(display_frame, "REC", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             cv2.imshow('Video Capture', display_frame)
             
-            # 1초마다 프레임 캡처 및 분석 (0초, 1초, 2초 ...)
-            # duration_sec 개수만큼만 캡처
+            # 1초마다 프레임 캡처 및 분석
             if capture_count < duration_sec and (current_time - last_capture_time) >= 1.0:
                 print(f"Analyzing frame {capture_count + 1}...")
                 
+                # 분석용 프레임은 '정방향(원본 frame)' 사용
                 analysis_frame = frame.copy()
                 image_rgb = cv2.cvtColor(analysis_frame, cv2.COLOR_BGR2RGB)
                 image_rgb.flags.writeable = False
                 results = holistic.process(image_rgb)
 
-                # JPEG Bytes 변환
+                # JPEG Bytes 변환 (분석용이므로 정방향)
                 _, buffer = cv2.imencode('.jpg', analysis_frame)
                 image_bytes = buffer.tobytes()
 
@@ -168,7 +169,7 @@ def generate_dynamic_lesson(duration_sec):
                 
                 captured_jsons.append(feature_json)
                 
-                last_capture_time = current_time # 타이머 리셋이 아니라 기준점 이동
+                last_capture_time = current_time
                 capture_count += 1
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -194,7 +195,7 @@ def post_images(image):
     files = {
         'file': ('image.jpg', img_bytes, 'image/jpeg')
     }
-    headers = {'X-ADMIN-KEY': X_ADMIN_KEY} # Query Param 가정
+    headers = {'X-ADMIN-KEY': X_ADMIN_KEY}
 
     try:
         response = requests.post(url, headers=headers, files=files)
@@ -237,14 +238,11 @@ def post_lessons(category_id, title, sign_language, difficulty, type, mode, fram
         "mode": mode,
         "imageUrl": image_url,
         "videoUrl": video_url,
-        "frameNumber": frame_number # 스키마에 있다면 추가
+        "frameNumber": frame_number
     }
     
-    # Headers 설정 (JSON body)
     headers = {
         "Content-Type": "application/json",
-        # 필요하다면 X_ADMIN_KEY를 헤더에도 추가
-        # "X-Admin-Key": X_ADMIN_KEY 
     }
 
     try:
@@ -262,7 +260,7 @@ def post_answer_frames(lesson_id, seq, answer_frame):
     
     payload = {
         "seq": seq,
-        "hand": answer_frame, # extract_feature_json의 결과
+        "hand": answer_frame, 
         "frameMeta": "meta_data_placeholder"
     }
     
@@ -311,17 +309,13 @@ def main():
     
     else:
         # 동적 비디오 (문장 또는 긴 단어)
-        # generate_dynamic_lesson은 (json 리스트, 비디오 경로)를 반환해야 함
         mode = "DYNAMIC"
         hand_jsons, video_path = generate_dynamic_lesson(frame_number)
         
         if video_path and os.path.exists(video_path):
             video_url = post_videos(video_path)
-            # 임시 파일 삭제
-            # os.remove(video_path) 
             
             if video_url:
-                # 썸네일용으로 첫 번째 프레임을 이미지로 올릴 수도 있음 (여기선 생략)
                 lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url)
                 
                 if lesson_id:
