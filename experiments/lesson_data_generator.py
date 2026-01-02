@@ -15,8 +15,8 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from app.services.feature_extractor import extract_feature_json
 from app.services.expression_analyzation_service import analyze_expression_with_llm
 
-API_BASE_URL = os.getenv("BACKEND_ENDPOINT")
-X_ADMIN_KEY = os.getenv("X_ADMIN_KEY")
+API_BASE_URL = os.getenv("BACKEND_ENDPOINT", "https://equal-sign-backend-api-haejb5bdhnezc2c2.koreacentral-01.azurewebsites.net")
+X_ADMIN_KEY = os.getenv("X_ADMIN_KEY", "equal_sign_media_upload")
 
 # === 설정 및 초기화 ===
 mp_holistic = mp.solutions.holistic
@@ -95,95 +95,112 @@ def generate_static_lesson():
     cv2.destroyAllWindows()
     return captured_data, final_image
 
+# ... (앞부분 import 생략) ...
+
 def generate_dynamic_lesson(duration_sec):
     cap = cv2.VideoCapture(0)
     
-    # 비디오 저장을 위한 설정
-    temp_video_path = os.path.join(tempfile.gettempdir(), f"sign_video_{int(time.time())}.mp4")
+    # [핵심] 해상도를 640x480으로 강제 다운사이징 (용량 다이어트)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     
-    # 코덱 및 VideoWriter 설정
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
-    fps = 30.0
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    filename = f"sign_video_{int(time.time())}.mov"
+    save_path = os.path.join(current_dir, filename)
+    
+    fourcc = cv2.VideoWriter_fourcc(*'avc1') 
+    
+    # 실제 설정된 해상도 확인
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    out = cv2.VideoWriter(temp_video_path, fourcc, fps, (width, height))
+    fps = 30.0 # 고정 30fps
+    
+    out = cv2.VideoWriter(save_path, fourcc, fps, (width, height))
 
-    captured_jsons = []
+    frames_to_analyze = [] 
+    
+    print(f">>> 녹화 해상도 설정: {width}x{height} (용량 최적화 모드)")
 
-    with mp_holistic.Holistic(
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5) as holistic:
+    # [Phase 0] 카운트다운
+    start_time = time.time()
+    while (time.time() - start_time) < 3:
+        ret, frame = cap.read()
+        if not ret: break
+        display_frame = cv2.flip(frame, 1)
+        remaining = 3 - (time.time() - start_time)
+        cv2.putText(display_frame, str(int(remaining) + 1), (150, 200), # 텍스트 위치 조정
+                        cv2.FONT_HERSHEY_SIMPLEX, 4, (0, 255, 255), 5)
+        cv2.imshow('Video Capture', display_frame)
+        cv2.waitKey(1)
 
-        print(">>> 3초 카운트다운 시작! (동영상 촬영)")
-        start_time = time.time()
-        while (time.time() - start_time) < 3:
-            ret, frame = cap.read()
-            if not ret: break
-            display_frame = cv2.flip(frame, 1)
-            remaining = 3 - (time.time() - start_time)
-            cv2.putText(display_frame, str(int(remaining) + 1), (300, 250),
-                            cv2.FONT_HERSHEY_SIMPLEX, 7, (0, 255, 255), 10)
-            cv2.imshow('Video Capture', display_frame)
-            cv2.waitKey(1)
+    # [Phase 1] 고속 녹화
+    print(">>> 🎥 녹화 시작!")
+    record_start_time = time.time()
+    last_capture_time = record_start_time - 1.0
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break
+        
+        current_time = time.time()
+        elapsed = current_time - record_start_time
 
-        print(">>> 녹화 시작!")
-        record_start_time = time.time()
-        last_capture_time = record_start_time
-        capture_count = 0
+        if elapsed > duration_sec:
+            break
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            current_time = time.time()
-            elapsed = current_time - record_start_time
+        out.write(cv2.flip(frame, 1))
 
-            if elapsed > duration_sec:
-                break
+        if (current_time - last_capture_time) >= 1.0:
+            frames_to_analyze.append(frame.copy())
+            last_capture_time = current_time
 
-            # [수정됨] 비디오 파일에는 '거울모드(반전된 프레임)'를 기록
-            out.write(cv2.flip(frame, 1))
-
-            # 화면 표시 (거울모드)
-            display_frame = cv2.flip(frame, 1)
-            cv2.putText(display_frame, "REC", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.imshow('Video Capture', display_frame)
-            
-            # 1초마다 프레임 캡처 및 분석
-            if capture_count < duration_sec and (current_time - last_capture_time) >= 1.0:
-                print(f"Analyzing frame {capture_count + 1}...")
-                
-                # 분석용 프레임은 '정방향(원본 frame)' 사용
-                analysis_frame = frame.copy()
-                image_rgb = cv2.cvtColor(analysis_frame, cv2.COLOR_BGR2RGB)
-                image_rgb.flags.writeable = False
-                results = holistic.process(image_rgb)
-
-                # JPEG Bytes 변환 (분석용이므로 정방향)
-                _, buffer = cv2.imencode('.jpg', analysis_frame)
-                image_bytes = buffer.tobytes()
-
-                expression = analyze_expression_with_llm(image_bytes)
-                feature_json = extract_feature_json(results, expression)
-                
-                captured_jsons.append(feature_json)
-                
-                last_capture_time = current_time
-                capture_count += 1
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        display_frame = cv2.flip(frame, 1)
+        cv2.putText(display_frame, "REC", (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        cv2.imshow('Video Capture', display_frame)
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
     cap.release()
     out.release()
     cv2.destroyAllWindows()
     
-    print(f">>> 녹화 완료: {temp_video_path}")
-    print(f">>> 캡처된 프레임 수: {len(captured_jsons)}")
-    
-    return captured_jsons, temp_video_path
+    # [용량 확인 로그 추가]
+    file_size_mb = os.path.getsize(save_path) / (1024 * 1024)
+    print(f">>> 📁 생성된 파일 크기: {file_size_mb:.2f} MB")
 
+    if file_size_mb > 10.0:
+        print(">>> ⚠️ 경고: 파일 크기가 10MB를 초과했습니다. 업로드 실패 가능성이 높습니다.")
+
+    # [Phase 2] AI 분석 (생략 없이 진행)
+    print(f"\n>>> 🧠 녹화 완료. AI 분석 시작 (총 {len(frames_to_analyze)}장)...")
+    
+    captured_jsons = []
+    
+    with mp_holistic.Holistic(
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5) as holistic:
+        
+        for idx, analysis_frame in enumerate(frames_to_analyze):
+            # print(f"  ... Analyzing frame {idx + 1}")
+            image_rgb = cv2.cvtColor(analysis_frame, cv2.COLOR_BGR2RGB)
+            image_rgb.flags.writeable = False
+            results = holistic.process(image_rgb)
+
+            _, buffer = cv2.imencode('.jpg', analysis_frame)
+            image_bytes = buffer.tobytes()
+
+            expression = analyze_expression_with_llm(image_bytes)
+            feature_json = extract_feature_json(results, expression)
+            
+            captured_jsons.append(feature_json)
+
+    if os.path.exists(save_path) and os.path.getsize(save_path) > 0:
+        print(f">>> ✅ 영상 파일 준비 완료: {save_path}")
+    else:
+        return [], None
+    
+    return captured_jsons, save_path
 def post_images(image):
     url = f"{API_BASE_URL}/api/storage/images"
     
@@ -206,26 +223,41 @@ def post_images(image):
     except Exception as e:
         print(f"❌ Image Upload Failed: {e}")
         return None
-
+    
 def post_videos(video_path):
     url = f"{API_BASE_URL}/api/storage/videos"
     
-    headers = {'X-ADMIN-KEY': X_ADMIN_KEY}
+    # [수정 3] Swagger 요청과 동일한 헤더 구성
+    headers = {
+        'X-ADMIN-KEY': X_ADMIN_KEY
+    }
     
+    print(f">>> 업로드 시도: {video_path}")
+
     try:
         with open(video_path, 'rb') as f:
+            # [수정 4] MIME 타입을 Swagger와 동일하게 'video/quicktime'으로 지정
+            # 파일명도 .mov로 명시
             files = {
-                'file': ('video.mp4', f, 'video/mp4')
+                'file': ('video.mov', f, 'video/quicktime')
             }
-            response = requests.post(url, headers=headers, files=files)
+            
+            # timeout을 넉넉하게 60초로 설정 (502 Timeout 방지)
+            response = requests.post(url, headers=headers, files=files, timeout=60)
+            
+            if response.status_code != 200:
+                print(f"❌ Server Error ({response.status_code}): {response.text}")
+            
             response.raise_for_status()
             result = response.json()
             print(f"✅ Video Upload Success: {result['uploadUrl']}")
             return result['uploadUrl']
+    except requests.exceptions.Timeout:
+        print("❌ Upload Timeout: 서버 응답이 너무 늦습니다. 파일이 너무 크거나 백엔드 처리가 느립니다.")
+        return None
     except Exception as e:
         print(f"❌ Video Upload Failed: {e}")
         return None
-
 def post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url):
     url = f"{API_BASE_URL}/api/lessons"
     
@@ -297,7 +329,7 @@ def main():
     lesson_id = None
 
     if frame_number == 1:
-        # 정적 이미지 (단어)
+        # 정적 이미지 로직 (생략 - 기존 유지)
         mode = "STATIC"
         hand_json, image = generate_static_lesson()
         if image is not None:
@@ -308,12 +340,16 @@ def main():
                     post_answer_frames(lesson_id, 1, hand_json)
     
     else:
-        # 동적 비디오 (문장 또는 긴 단어)
+        # 동적 비디오 로직
         mode = "DYNAMIC"
         hand_jsons, video_path = generate_dynamic_lesson(frame_number)
         
         if video_path and os.path.exists(video_path):
             video_url = post_videos(video_path)
+            
+            # [수정 3] 파일 삭제 코드 제거 (파일이 사라지는 원인)
+            # os.remove(video_path) 
+            # print(">>> 임시 파일 삭제 완료")
             
             if video_url:
                 lesson_id = post_lessons(category_id, title, sign_language, difficulty, type, mode, frame_number, image_url, video_url)
@@ -321,6 +357,10 @@ def main():
                 if lesson_id:
                     for i, hand_json in enumerate(hand_jsons):
                         post_answer_frames(lesson_id, i + 1, hand_json)
+            else:
+                print(">>> ⚠️ 비디오 업로드 실패로 레슨 생성을 중단합니다.")
+        else:
+            print(">>> ⚠️ 비디오 파일이 없어서 업로드를 건너뜁니다.")
 
 if __name__ == "__main__":
     main()
