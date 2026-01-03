@@ -60,8 +60,14 @@ def call_llm(prompt: str) -> str:\
 import httpx # pip install httpx
 import json
 import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # 비동기 GPT 호출
+@retry(
+    stop=stop_after_attempt(3), 
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(httpx.HTTPStatusError)
+)
 async def call_gpt_json_async(system_prompt: str, user_prompt: str) -> dict:
     dalle_api_version = "2024-02-01"
     url = f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version={dalle_api_version}"
@@ -82,6 +88,11 @@ async def call_gpt_json_async(system_prompt: str, user_prompt: str) -> dict:
         return json.loads(content)
 
 # 비동기 DALL-E 호출
+@retry(
+    stop=stop_after_attempt(3), 
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(httpx.HTTPStatusError)
+)
 async def call_dalle_image_async(prompt: str) -> str:
     url = f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{AZURE_DALLE_DEPLOYMENT}/images/generations?api-version={API_VERSION}"
     
