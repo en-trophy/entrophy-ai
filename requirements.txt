@@ -8,3 +8,5 @@ python-multipart
 opencv-python-headless==4.9.0.80
 azure-cognitiveservices-vision-customvision
 msrest
+httpx
+tenacity
