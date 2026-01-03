@@ -33,7 +33,7 @@ async def create_simulation(req: SimulationRequest):
         print(f"🤖 AI 생성 시작 (사용 단어: {lesson_words})")
 
         # 2. AI 서비스 호출 (기존 로직 동일)
-        result = generate_simulation_scenario(lesson_words)
+        result = await generate_simulation_scenario(lesson_words)
         
         return result
 

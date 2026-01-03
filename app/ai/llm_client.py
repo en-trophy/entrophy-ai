@@ -56,7 +56,13 @@ def call_llm(prompt: str) -> str:\
     return result["choices"][0]["message"]["content"]
 
 # [NEW] 시나리오 생성용 (JSON 모드 지원)
-def call_gpt_json(system_prompt: str, user_prompt: str) -> dict:
+# 기존: import requests
+import httpx # pip install httpx
+import json
+import asyncio
+
+# 비동기 GPT 호출
+async def call_gpt_json_async(system_prompt: str, user_prompt: str) -> dict:
     dalle_api_version = "2024-02-01"
     url = f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version={dalle_api_version}"
     
@@ -65,29 +71,30 @@ def call_gpt_json(system_prompt: str, user_prompt: str) -> dict:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        "temperature": 0.7, # 창의적인 시나리오를 위해 약간 높임
-        "response_format": {"type": "json_object"} # JSON 강제 반환 설정
+        "temperature": 0.7,
+        "response_format": {"type": "json_object"}
     }
 
-    response = requests.post(url, headers=get_headers(), json=payload)
-    response.raise_for_status()
-    
-    content = response.json()["choices"][0]["message"]["content"]
-    return json.loads(content)
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=get_headers(), json=payload, timeout=60.0)
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        return json.loads(content)
 
-# [NEW] 이미지 생성용 (DALL-E 3)
-def call_dalle_image(prompt: str) -> str:
+# 비동기 DALL-E 호출
+async def call_dalle_image_async(prompt: str) -> str:
     url = f"{AZURE_OPENAI_ENDPOINT}openai/deployments/{AZURE_DALLE_DEPLOYMENT}/images/generations?api-version={API_VERSION}"
     
     payload = {
         "prompt": prompt,
         "n": 1,
-        "size": "1024x1024",  
+        "size": "1024x1024",
         "style": "vivid",
         "quality": "standard"
     }
 
-    response = requests.post(url, headers=get_headers(), json=payload)
-    response.raise_for_status()
-    
-    return response.json()["data"][0]["url"]
+    # DALL-E는 오래 걸리므로 timeout을 길게(예: 30초~60초) 설정
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=get_headers(), json=payload, timeout=90.0)
+        response.raise_for_status()
+        return response.json()["data"][0]["url"]

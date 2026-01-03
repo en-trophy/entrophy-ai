@@ -1,8 +1,8 @@
 import json
-from app.ai.llm_client import call_gpt_json, call_dalle_image
+from app.ai.llm_client import call_gpt_json_async, call_dalle_image_async
 from app.models.schemas import SimulationResponse, DialogueLine
 
-def generate_simulation_scenario(lesson_words: dict) -> SimulationResponse:
+async def generate_simulation_scenario(lesson_words: dict) -> SimulationResponse:
     """
     lesson_words: {lesson_id: "단어명", ...}
     """
@@ -101,12 +101,12 @@ Before outputting:
     user_prompt = f"사용할 단어 목록: {json.dumps(lesson_words, ensure_ascii=False)}"
 
     # 2. GPT 호출 (JSON 모드)
-    scenario_data = call_gpt_json(system_prompt, user_prompt)
+    scenario_data = await call_gpt_json_async(system_prompt, user_prompt)
     
     # 3. DALL-E 3 이미지 생성 호출
     # 프롬프트에 '1인칭 시점' 등 스타일 추가
     final_image_prompt = f"First-person view, photorealistic, {scenario_data['image_prompt']}, high quality"
-    image_url = call_dalle_image(final_image_prompt)
+    image_url = await call_dalle_image_async(final_image_prompt)
 
     # 4. 결과 매핑 (단어명 -> ID 변환)
     word_to_id = {v: k for k, v in lesson_words.items()}
